@@ -1,25 +1,25 @@
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+const pool = require('./database/pool');
 
 async function testConnection() {
     try {
-        const connection = await mysql.createConnection({
-            host: process.env.DB_HOST,
-            port: process.env.DB_PORT,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME
-        });
+        console.log('Testing database connection...');
+        const [rows] = await pool.query('SELECT 1 as test');
+        console.log('✅ Database connection successful:', rows);
 
-        console.log('✅ Database connected successfully!');
+        // Test if services table exists
+        const [tables] = await pool.query('SHOW TABLES LIKE "services"');
+        if (tables.length > 0) {
+            console.log('✅ Services table exists');
+            const [services] = await pool.query('SELECT COUNT(*) as count FROM services');
+            console.log(`✅ Services count: ${services[0].count}`);
+        } else {
+            console.log('❌ Services table does not exist - run seed.sql');
+        }
 
-        const [rows] = await connection.execute('SELECT * FROM services');
-        console.log('✅ Services found:', rows.length);
-        console.log('First service:', rows[0]);
-
-        await connection.end();
+        process.exit(0);
     } catch (error) {
         console.error('❌ Database connection failed:', error.message);
+        process.exit(1);
     }
 }
 
